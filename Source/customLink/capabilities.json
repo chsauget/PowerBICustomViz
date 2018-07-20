@@ -1,0 +1,22 @@
+{
+    "dataRoles": [
+       
+    ],
+    "objects": {
+        "configuration": {
+            "displayName": "Link",
+            "properties": {
+                "text": {
+                    "displayName": "Text",
+                    "type": {
+                        "text": true
+                        }
+                    }
+                }
+                
+            
+        }
+    },
+    "dataViewMappings": [ 
+    ]
+}
