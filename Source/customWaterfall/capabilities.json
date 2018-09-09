@@ -60,6 +60,16 @@
     },
     "dataViewMappings": [
         {
+            "conditions": [
+                {
+                    "category": {
+                        "max": 1
+                    },
+                    "measure": {
+                        "max": 1
+                    }
+                }
+            ],
             "categorical": {
                 "categories": {
                     "for": {
@@ -80,5 +90,15 @@
                 }
             }
         }
-    ]
+    ],
+    "sorting": {
+        "implicit": {
+            "clauses": [
+                {
+                    "role": "category",
+                    "direction": 1
+                }
+            ]
+        }
+    }
 }

@@ -26,6 +26,70 @@ module powerbi.extensibility.visual {
         end: number;
         class: string;
     };
+     /**
+     * Function that converts queried data into a view model that will be used by the visual
+     *
+     * @function
+     * @param {VisualUpdateOptions} options - Contains references to the size of the container
+     *                                        and the dataView which contains all the data
+     *                                        the visual had queried.
+     * @param {IVisualHost} host            - Contains references to the host which contains services
+     */
+    function visualTransform(options: VisualUpdateOptions, host: IVisualHost): BarChartViewModel {
+        let dataViews = options.dataViews;
+        let viewModel: BarChartViewModel = {
+            dataPoints: [],
+            dataMax: 0,
+            dataMin: 0
+        };
+         if (!dataViews
+            || !dataViews[0]
+            || !dataViews[0].categorical
+            || !dataViews[0].categorical.categories
+            || !dataViews[0].categorical.categories[0].source
+            || !dataViews[0].categorical.values)
+            return viewModel;
+        let categorical = dataViews[0].categorical;
+        let category = categorical.categories[0];
+        let dataValue = categorical.values[0];
+        let barChartDataPoints: BarChartDataPoint[] = [];
+        let dataMax: number;
+        // Pre calculate start and end of each bar
+        let cumulative = 0;
+         for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
+            
+            if(i==len - 1)
+            {
+                barChartDataPoints.push({
+                    category: <string>category.values[i],
+                    value: <number>dataValue.values[i],
+                    start: 0,
+                    end :(<number>dataValue.values[i]),
+                    class:'total'
+                });
+            }
+            else
+            {
+                barChartDataPoints.push({
+                    category: <string>category.values[i],
+                    value: <number>dataValue.values[i],
+                    start: cumulative,
+                    end :(<number>dataValue.values[i] + cumulative),
+                    class:(<number>dataValue.values[i] >= 0 ) ? 'positive' : 'negative'
+                });
+            }
+            cumulative += <number>dataValue.values[i];
+        }
+                    
+
+        dataMax = <number>dataValue.maxLocal;
+         return {
+            dataPoints: barChartDataPoints,
+            dataMax: dataMax,
+            dataMin : 0
+        };
+    }
+
 
     export class BarChart implements IVisual {
         private svg: d3.Selection<SVGElement>;
@@ -130,11 +194,12 @@ module powerbi.extensibility.visual {
                 }
             ];
 
-            let viewModel: BarChartViewModel = {
+/*            let viewModel: BarChartViewModel = {
                 dataPoints: testData,
                 dataMax: d3.max(testData.map((dataPoint) => dataPoint.value)),
                 dataMin : 0//d3.min(testData.map((dataPoint) => dataPoint.value))
-            };
+            };*/
+            let viewModel: BarChartViewModel = visualTransform(options, this.host);
             //Retrieve the visualisation size from PowerBI
             let width = options.viewport.width;
             let height = options.viewport.height;
@@ -158,6 +223,7 @@ module powerbi.extensibility.visual {
             let yScale = d3.scale.linear()
                 .domain([viewModel.dataMin, viewModel.dataMax])
                 .range([height, 0]);
+            
             let xScale = d3.scale.ordinal()
                 .domain(viewModel.dataPoints.map(d => d.category))
                 .rangeRoundBands([0, width], BarChart.Config.xScalePadding);
@@ -177,34 +243,18 @@ module powerbi.extensibility.visual {
                 .call(yAxis);               
             
 
-            // Pre calculate start and end of each bar
-            var cumulative = 0;
-            for (var i = 0; i < viewModel.dataPoints.length; i++) {
-                
-                viewModel.dataPoints[i].start = cumulative;
-                cumulative += viewModel.dataPoints[i].value;
-                viewModel.dataPoints[i].end = cumulative;
-                
-                viewModel.dataPoints[i].class = ( viewModel.dataPoints[i].value >= 0 ) ? 'positive' : 'negative'
-                if(i==viewModel.dataPoints.length - 1)
-                {
-                    viewModel.dataPoints[i].start = 0;
-                    viewModel.dataPoints[i].end = viewModel.dataPoints[i].value;
-                }
-            }
-
             //console.log('Visual update' , options);
             //debugger;
             let bars = this.barContainer.selectAll('.bar').data(viewModel.dataPoints);
             bars.enter()
-                .append('rect')
-                .classed('bar', true);
+                .append('rect');
             bars.attr({
                 width: xScale.rangeBand(),
                 height: d => height - yScale(Math.abs( d.start - d.end)),
                 y: d => yScale(Math.max(d.start, d.end) ),
                 x: d => xScale(d.category),
-                transform: 'translate('+margins.left+', '+margins.top+')'
+                transform: 'translate('+margins.left+', '+margins.top+')',
+                class : d => 'bar ' + d.class
             });
 
 
@@ -221,5 +271,7 @@ module powerbi.extensibility.visual {
         public destroy(): void {
             //Perform any cleanup tasks here
         }
+        
+        
     }
 }
