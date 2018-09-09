@@ -1,0 +1,28 @@
+{
+  "visual": {
+    "name": "customWaterfall",
+    "displayName": "CustomWaterfall",
+    "guid": "customWaterfall0FE9B59CDBF0499CA2C8F3E14B4FCA5E",
+    "visualClassName": "BarChart",
+    "version": "1.0.0",
+    "description": "",
+    "supportUrl": "",
+    "gitHubUrl": ""
+  },
+  "apiVersion": "2.1.0",
+  "author": {
+    "name": "",
+    "email": ""
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": [
+    "node_modules/powerbi-visuals-utils-dataviewutils/lib/index.js",
+    "node_modules/d3/d3.min.js"
+  ],
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": "dependencies.json",
+  "stringResources": []
+}
