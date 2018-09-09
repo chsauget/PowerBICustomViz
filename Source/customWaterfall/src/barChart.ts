@@ -127,14 +127,15 @@ module powerbi.extensibility.visual {
                 .append('svg')
                 .classed('barChart', true);
             
-            this.barContainer = svg.append('g')
-                .classed('barContainer', true);
+        
             this.xAxis = this.svg
                 .append('g')
                 .classed('xAxis', true);
             this.yAxis = this.svg
                 .append('g')
                 .classed('yAxis', true);
+            this.barContainer = svg.append('g')
+            .classed('barContainer', true);
         }
 
         /**
@@ -146,59 +147,7 @@ module powerbi.extensibility.visual {
          *                                        the visual had queried.
          */
         public update(options: VisualUpdateOptions) {
-            let testData: BarChartDataPoint[] = [
-                {
-                    value: 100,
-                    category: 'Total',
-                    start: 0,
-                    end: 0,
-                    class: ''
-                }
-                ,
-                {
-                    value: 60,
-                    category: 'effect1',
-                    start: 0,
-                    end: 0,
-                    class: ''
-                }
-                ,
-                {
-                    value: -20,
-                    category: 'effect2',
-                    start: 0,
-                    end: 0,
-                    class: ''
-                },
-                {
-                    value: -10,
-                    category: 'd',
-                    start: 0,
-                    end: 0,
-                    class: ''
-                },
-                {
-                    value: 30,
-                    category: 'e',
-                    start: 0,
-                    end: 0,
-                    class: ''
-                }
-                ,
-                {
-                    value: 160,
-                    category: 'Total G',
-                    start: 0,
-                    end: 0,
-                    class: ''
-                }
-            ];
 
-/*            let viewModel: BarChartViewModel = {
-                dataPoints: testData,
-                dataMax: d3.max(testData.map((dataPoint) => dataPoint.value)),
-                dataMin : 0//d3.min(testData.map((dataPoint) => dataPoint.value))
-            };*/
             let viewModel: BarChartViewModel = visualTransform(options, this.host);
             //Retrieve the visualisation size from PowerBI
             let width = options.viewport.width;
@@ -242,6 +191,11 @@ module powerbi.extensibility.visual {
             this.yAxis.attr('transform', 'translate(51, '+margins.top+')')
                 .call(yAxis);               
             
+                this.yAxis.attr('transform', 'translate(51, '+margins.top+')')
+                .attr("class","grid")
+
+                .call(yAxis.tickSize(-width));
+
 
             //console.log('Visual update' , options);
             //debugger;
@@ -257,7 +211,24 @@ module powerbi.extensibility.visual {
                 class : d => 'bar ' + d.class
             });
 
+      
+            let lbl = this.barContainer.selectAll('.lbl').data(viewModel.dataPoints);
+            lbl.enter()
+            .append("text");
+            lbl.attr({
+                x: d => xScale(d.category) + xScale.rangeBand() / 2,
+                y: d => yScale(d.end),
+                dy: d => ((d.class=='negative') ? '-' : '') + "1.4em",
+                transform: 'translate('+margins.left+', '+margins.top+')',
+                class: 'lbl',
+                'text-anchor':"middle"
+            })
+            .text(d => d.value);
 
+
+
+            lbl.exit()
+            .remove();
             bars.exit()
                 .remove();
         }
