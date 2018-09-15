@@ -18,6 +18,7 @@ module powerbi.extensibility.visual {
      * @interface
      * @property {number} value    - Data value for point.
      * @property {string} category - Coresponding category of data value.
+     * @property {ISelectionId} selectionId - ID of the selected item
      */
     interface BarChartDataPoint {
         value: number;
@@ -25,6 +26,7 @@ module powerbi.extensibility.visual {
         start: number;
         end: number;
         class: string;
+        selectionId: ISelectionId;
     };
      /**
      * Function that converts queried data into a view model that will be used by the visual
@@ -56,7 +58,7 @@ module powerbi.extensibility.visual {
         let dataMax: number;
         // Pre calculate start and end of each bar
         let cumulative = 0;
-         for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
+        for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
             
             if(i==len - 1)
             {
@@ -65,7 +67,10 @@ module powerbi.extensibility.visual {
                     value: <number>dataValue.values[i],
                     start: 0,
                     end :(<number>dataValue.values[i]),
-                    class:'total'
+                    class:'total',
+                    selectionId: host.createSelectionIdBuilder()
+                        .withCategory(category, i)
+                        .createSelectionId()
                 });
             }
             else
@@ -75,7 +80,10 @@ module powerbi.extensibility.visual {
                     value: <number>dataValue.values[i],
                     start: cumulative,
                     end :(<number>dataValue.values[i] + cumulative),
-                    class:(<number>dataValue.values[i] >= 0 ) ? 'positive' : 'negative'
+                    class:(<number>dataValue.values[i] >= 0 ) ? 'positive' : 'negative',
+                    selectionId: host.createSelectionIdBuilder()
+                        .withCategory(category, i)
+                        .createSelectionId()
                 });
             }
             cumulative += <number>dataValue.values[i];
@@ -99,7 +107,8 @@ module powerbi.extensibility.visual {
         private bars: d3.Selection<SVGElement>;
         private xAxis: d3.Selection<SVGElement>;
         private yAxis: d3.Selection<SVGElement>;
-        
+        private selectionManager: ISelectionManager;
+
         static Config = {
             xScalePadding: 0.1,
             solidOpacity: 1,
@@ -123,11 +132,11 @@ module powerbi.extensibility.visual {
          */
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
+            this.selectionManager = options.host.createSelectionManager();
+
             let svg = this.svg = d3.select(options.element)
                 .append('svg')
                 .classed('barChart', true);
-            
-        
             this.xAxis = this.svg
                 .append('g')
                 .classed('xAxis', true);
@@ -135,7 +144,7 @@ module powerbi.extensibility.visual {
                 .append('g')
                 .classed('yAxis', true);
             this.barContainer = svg.append('g')
-            .classed('barContainer', true);
+                .classed('barContainer', true);
         }
 
         /**
@@ -197,8 +206,6 @@ module powerbi.extensibility.visual {
                 .call(yAxis.tickSize(-width));
 
 
-            //console.log('Visual update' , options);
-            //debugger;
             let bars = this.barContainer.selectAll('.bar').data(viewModel.dataPoints);
             bars.enter()
                 .append('rect');
@@ -209,6 +216,19 @@ module powerbi.extensibility.visual {
                 x: d => xScale(d.category),
                 transform: 'translate('+margins.left+', '+margins.top+')',
                 class : d => 'bar ' + d.class
+            });
+
+            let selectionManager = this.selectionManager;
+            bars.on('click', function(d) {
+                selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                    bars.attr({
+                        'fill-opacity': ids.length > 0 ? BarChart.Config.transparentOpacity : BarChart.Config.solidOpacity
+                    });
+                    d3.select(this).attr({
+                        'fill-opacity': BarChart.Config.solidOpacity
+                    });
+                });
+                (<Event>d3.event).stopPropagation
             });
 
       
