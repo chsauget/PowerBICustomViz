@@ -57,10 +57,10 @@ module powerbi.extensibility.visual {
         let category = categorical.categories[0];
         let dataValue = categorical.values[0];
         let barChartDataPoints: BarChartDataPoint[] = [];
-        let dataMax: number;
         let dataAdjusment: number;
         // Pre calculate start and end of each bar
         let cumulative = 0;
+        let dataMax = 0;
         for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
             
             if(i==len - 1)
@@ -89,12 +89,13 @@ module powerbi.extensibility.visual {
                         .createSelectionId()
                 });
             }
+            dataMax = Math.max(dataMax,cumulative)
             cumulative += <number>dataValue.values[i];
         }
                     
-
-        dataMax = <number>dataValue.maxLocal;
-        dataAdjusment = dataMax - (2*Math.abs(<number>dataValue.values[0] - <number>dataValue.values[dataValue.values.length-1]));
+        debugger;
+        //dataMax = <number>dataValue.maxLocal;
+        dataAdjusment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
          return {
             dataPoints: barChartDataPoints,
             dataMax: dataMax,
