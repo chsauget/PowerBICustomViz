@@ -243,7 +243,7 @@ module powerbi.extensibility.visual {
             lbl.attr({
                 x: d => xScale(d.category) + xScale.rangeBand() / 2,
                 y: d => yScale(d.end),
-                dy: d => ((d.class=='negative') ? '-' : '') + "1.4em",
+                dy: d => ((d.class=='negative') ? '-0.5em' : '1.4em'),
                 transform: 'translate('+margins.left+', '+margins.top+')',
                 class: 'lbl',
                 'text-anchor':"middle"
