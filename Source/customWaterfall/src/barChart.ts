@@ -95,7 +95,7 @@ module powerbi.extensibility.visual {
                     
         debugger;
         //dataMax = <number>dataValue.maxLocal;
-        dataAdjusment = dataMax - (2*Math.abs(<number>dataValue.values[0] - <number>dataValue.values[dataValue.values.length-1]));
+        dataAdjusment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
          return {
             dataPoints: barChartDataPoints,
             dataMax: dataMax,
