@@ -1,4 +1,7 @@
 module powerbi.extensibility.visual {
+
+    import tooltip = powerbi.extensibility.utils.tooltip;
+
     /**
      * Interface for BarCharts viewmodel.
      *
@@ -113,6 +116,8 @@ module powerbi.extensibility.visual {
         private xAxis: d3.Selection<SVGElement>;
         private yAxis: d3.Selection<SVGElement>;
         private selectionManager: ISelectionManager;
+        private tooltipServiceWrapper: tooltip.ITooltipServiceWrapper;
+        private locale: string;
 
         static Config = {
             xScalePadding: 0.1,
@@ -138,6 +143,8 @@ module powerbi.extensibility.visual {
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.selectionManager = options.host.createSelectionManager();
+            this.tooltipServiceWrapper = tooltip.createTooltipServiceWrapper(this.host.tooltipService, options.element);
+            this.locale = options.host.locale;
 
             let svg = this.svg = d3.select(options.element)
                 .append('svg')
@@ -236,6 +243,11 @@ module powerbi.extensibility.visual {
                 (<Event>d3.event).stopPropagation
             });
 
+            
+            this.tooltipServiceWrapper.addTooltip(this.barContainer.selectAll('.bar'),
+                (tooltipEvent: tooltip.TooltipEventArgs<BarChartDataPoint>) => this.getTooltipData(tooltipEvent.data),
+                (tooltipEvent: tooltip.TooltipEventArgs<BarChartDataPoint>) => tooltipEvent.data.selectionId
+            );
       
             let lbl = this.barContainer.selectAll('.lbl').data(viewModel.dataPoints);
             lbl.enter()
@@ -259,6 +271,16 @@ module powerbi.extensibility.visual {
 
         }
 
+        private getTooltipData(value: any): VisualTooltipDataItem[] {
+            let language = getLocalizedString(this.locale, "LanguageKey");
+            return [{
+                displayName: value.category,
+                value: value.value.toString(),
+                color: value.color,
+                header: language && language
+            }];
+}
+
         /**
          * Destroy runs when the visual is removed. Any cleanup that the visual needs to
          * do should be done here.
@@ -268,6 +290,7 @@ module powerbi.extensibility.visual {
         public destroy(): void {
             //Perform any cleanup tasks here
         }
+        
         
         
     }
