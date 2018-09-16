@@ -10,6 +10,7 @@ module powerbi.extensibility.visual {
         dataPoints: BarChartDataPoint[];
         dataMax: number;
         dataMin: number;
+        dataAdjusment: number;
     };
 
     /**
@@ -42,7 +43,8 @@ module powerbi.extensibility.visual {
         let viewModel: BarChartViewModel = {
             dataPoints: [],
             dataMax: 0,
-            dataMin: 0
+            dataMin: 0,
+            dataAdjusment:0
         };
          if (!dataViews
             || !dataViews[0]
@@ -56,6 +58,7 @@ module powerbi.extensibility.visual {
         let dataValue = categorical.values[0];
         let barChartDataPoints: BarChartDataPoint[] = [];
         let dataMax: number;
+        let dataAdjusment: number;
         // Pre calculate start and end of each bar
         let cumulative = 0;
         for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
@@ -91,10 +94,12 @@ module powerbi.extensibility.visual {
                     
 
         dataMax = <number>dataValue.maxLocal;
+        dataAdjusment = dataMax - (2*Math.abs(<number>dataValue.values[0] - <number>dataValue.values[dataValue.values.length-1]));
          return {
             dataPoints: barChartDataPoints,
             dataMax: dataMax,
-            dataMin : 0
+            dataMin : 0,
+            dataAdjusment : dataAdjusment
         };
     }
 
@@ -179,7 +184,7 @@ module powerbi.extensibility.visual {
             });
 
             let yScale = d3.scale.linear()
-                .domain([viewModel.dataMin, viewModel.dataMax])
+                .domain([viewModel.dataAdjusment, viewModel.dataMax])
                 .range([height, 0]);
             
             let xScale = d3.scale.ordinal()
@@ -211,7 +216,7 @@ module powerbi.extensibility.visual {
                 .append('rect');
             bars.attr({
                 width: xScale.rangeBand(),
-                height: d => height - yScale(Math.abs( d.start - d.end)),
+                height: d => height - (yScale(Math.abs( d.start - d.end)+viewModel.dataAdjusment)<0?yScale(Math.abs( d.start - d.end)):yScale(Math.abs( d.start - d.end)+viewModel.dataAdjusment)),
                 y: d => yScale(Math.max(d.start, d.end) ),
                 x: d => xScale(d.category),
                 transform: 'translate('+margins.left+', '+margins.top+')',
@@ -251,6 +256,7 @@ module powerbi.extensibility.visual {
             .remove();
             bars.exit()
                 .remove();
+
         }
 
         /**
