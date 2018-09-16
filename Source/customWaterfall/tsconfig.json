@@ -10,6 +10,9 @@
   "files": [
     ".api/v2.1.0/PowerBI-visuals.d.ts",
     "node_modules/powerbi-visuals-utils-dataviewutils/lib/index.d.ts",
-    "src/barChart.ts"
+    "node_modules/powerbi-visuals-utils-tooltiputils/lib/index.d.ts",
+    "src/barChart.ts",
+    "localization/localizationHelper.ts",
+    "localization/localizedResources.ts"
   ]
 }
