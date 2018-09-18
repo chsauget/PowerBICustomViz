@@ -8,21 +8,40 @@ module powerbi.extensibility.visual {
      * @interface
      * @property {BarChartDataPoint[]} dataPoints - Set of data points the visual will render.
      * @property {number} dataMax                 - Maximum data value in the set of data points.
+     * @property {number} dataMin                 - Minimum data value in the set of data points.
+     * @property {number} dataAdjustment           - Y axis ajustment in case of Auto Y
+     * @property {BarChartSettings} settings      - Object property settings
      */
     interface BarChartViewModel {
         dataPoints: BarChartDataPoint[];
         dataMax: number;
         dataMin: number;
-        dataAdjusment: number;
+        dataAdjustment: number;
+        settings: BarChartSettings;
     };
 
+    /**
+     * Interface for BarChart settings.
+     *
+     * @interface
+     * @property {{show:boolean}} autoAdjustment - Object property that allows auto Y axis.
+     */
+    interface BarChartSettings {
+        autoAdjustment: {
+            show: boolean;
+        };
+    }
+    
     /**
      * Interface for BarChart data points.
      *
      * @interface
-     * @property {number} value    - Data value for point.
-     * @property {string} category - Coresponding category of data value.
-     * @property {ISelectionId} selectionId - ID of the selected item
+     * @property {number} value        - Data value for point.
+     * @property {string} category     - Coresponding category of data value.
+     * @property {number} start        - Y start value for the waterfall bar
+     * @property {number} end          - Y end value for the waterfall bar
+     * @property {number} class        - class in order to identify total, positive or negative values
+     * @property {number} selectionId  - ID of the selected item
      */
     interface BarChartDataPoint {
         value: number;
@@ -43,11 +62,17 @@ module powerbi.extensibility.visual {
      */
     function visualTransform(options: VisualUpdateOptions, host: IVisualHost): BarChartViewModel {
         let dataViews = options.dataViews;
+        let defaultSettings: BarChartSettings = {
+            autoAdjustment: {
+                show: true
+            }
+        };
         let viewModel: BarChartViewModel = {
             dataPoints: [],
             dataMax: 0,
             dataMin: 0,
-            dataAdjusment:0
+            dataAdjustment: 0,
+            settings: defaultSettings
         };
          if (!dataViews
             || !dataViews[0]
@@ -56,12 +81,21 @@ module powerbi.extensibility.visual {
             || !dataViews[0].categorical.categories[0].source
             || !dataViews[0].categorical.values)
             return viewModel;
+
+            let objects = dataViews[0].metadata.objects;
+            let barChartSettings: BarChartSettings = {
+                autoAdjustment: {
+                    show: getValue<boolean>(objects, 'autoAdjustment', 'show', defaultSettings.autoAdjustment.show)
+                }
+            };
         let categorical = dataViews[0].categorical;
         let category = categorical.categories[0];
         let dataValue = categorical.values[0];
         let barChartDataPoints: BarChartDataPoint[] = [];
-        let dataAdjusment: number;
-        // Pre calculate start and end of each bar
+        let dataAdjustment: number;
+        /*****************************************************************************/
+        /* Populate barChartDataPoints from dataset                                  */
+        /*****************************************************************************/
         let cumulative = 0;
         let dataMax = 0;
         for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
@@ -96,14 +130,16 @@ module powerbi.extensibility.visual {
             cumulative += <number>dataValue.values[i];
         }
                     
-        debugger;
+        //debugger;
         //dataMax = <number>dataValue.maxLocal;
-        dataAdjusment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
-         return {
+        dataAdjustment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
+        //Return viewModel 
+        return {
             dataPoints: barChartDataPoints,
             dataMax: dataMax,
-            dataMin : 0,
-            dataAdjusment : dataAdjusment
+            dataMin: 0,
+            dataAdjustment: dataAdjustment,
+            settings: barChartSettings
         };
     }
 
@@ -118,6 +154,7 @@ module powerbi.extensibility.visual {
         private yAxis: d3.Selection<SVGElement>;
         private selectionManager: ISelectionManager;
         private tooltipServiceWrapper: tooltip.ITooltipServiceWrapper;
+        private barChartSettings: BarChartSettings;
         private locale: string;
 
         static Config = {
@@ -171,19 +208,33 @@ module powerbi.extensibility.visual {
         public update(options: VisualUpdateOptions) {
 
             let viewModel: BarChartViewModel = visualTransform(options, this.host);
+            let settings = this.barChartSettings = viewModel.settings;
+            let adjustment = viewModel.dataAdjustment;
             //Retrieve the visualisation size from PowerBI
             let width = options.viewport.width;
             let height = options.viewport.height;
-
+            
             this.svg.attr({
                 width: width,
                 height: height
             });
 
+            /*****************************************************************************/
+            /* Configuration management                                                  */
+            /*****************************************************************************/  
+
+            if (!settings.autoAdjustment.show) {
+                adjustment = 0;
+            }
+            
             let margins = BarChart.Config.margins;
             height -= (margins.bottom + margins.top);
             width -= margins.left;
 
+
+            /*****************************************************************************/
+            /* Start drawing with D3.js                                                  */
+            /*****************************************************************************/
             this.xAxis.style({
                 "font-size": d3.min([height, width]) * BarChart.Config.xAxisFontMultiplier
             });
@@ -192,7 +243,7 @@ module powerbi.extensibility.visual {
             });
 
             let yScale = d3.scale.linear()
-                .domain([viewModel.dataAdjusment, viewModel.dataMax])
+                .domain([adjustment, viewModel.dataMax])
                 .range([height, 0]);
             
             let xScale = d3.scale.ordinal()
@@ -218,19 +269,32 @@ module powerbi.extensibility.visual {
 
                 .call(yAxis.tickSize(-width));
 
-
+            //Draw bars
             let bars = this.barContainer.selectAll('.bar').data(viewModel.dataPoints);
             bars.enter()
                 .append('rect');
             bars.attr({
                 width: xScale.rangeBand(),
-                height: d => height - (yScale(Math.abs( d.start - d.end)+viewModel.dataAdjusment)<0?yScale(Math.abs( d.start - d.end)):yScale(Math.abs( d.start - d.end)+viewModel.dataAdjusment)),
+                height: d => height - (yScale(Math.abs( d.start - d.end)+adjustment)<0?yScale(Math.abs( d.start - d.end)):yScale(Math.abs( d.start - d.end)+adjustment)),
                 y: d => yScale(Math.max(d.start, d.end) ),
                 x: d => xScale(d.category),
                 transform: 'translate('+margins.left+', '+margins.top+')',
                 class : d => 'bar ' + d.class
             });
-
+            //Draw label
+            let lbl = this.barContainer.selectAll('.lbl').data(viewModel.dataPoints);
+            lbl.enter()
+            .append("text");
+            lbl.attr({
+                x: d => xScale(d.category) + xScale.rangeBand() / 2,
+                y: d => yScale(d.end),
+                dy: d => ((d.class=='negative') ? '-0.5em' : '1.4em'),
+                transform: 'translate('+margins.left+', '+margins.top+')',
+                class: 'lbl',
+                'text-anchor':"middle"
+            })
+            .text(d => d.value);
+            //Bind click event on bars to the selection manager
             let selectionManager = this.selectionManager;
             bars.on('click', function(d) {
                 selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
@@ -244,27 +308,13 @@ module powerbi.extensibility.visual {
                 (<Event>d3.event).stopPropagation
             });
 
-            
+            //Bind tooltip to bars
             this.tooltipServiceWrapper.addTooltip(this.barContainer.selectAll('.bar'),
                 (tooltipEvent: tooltip.TooltipEventArgs<BarChartDataPoint>) => this.getTooltipData(tooltipEvent.data),
                 (tooltipEvent: tooltip.TooltipEventArgs<BarChartDataPoint>) => tooltipEvent.data.selectionId
             );
-      
-            let lbl = this.barContainer.selectAll('.lbl').data(viewModel.dataPoints);
-            lbl.enter()
-            .append("text");
-            lbl.attr({
-                x: d => xScale(d.category) + xScale.rangeBand() / 2,
-                y: d => yScale(d.end),
-                dy: d => ((d.class=='negative') ? '-0.5em' : '1.4em'),
-                transform: 'translate('+margins.left+', '+margins.top+')',
-                class: 'lbl',
-                'text-anchor':"middle"
-            })
-            .text(d => d.value);
-
-
-
+            
+            //Clean bars and label
             lbl.exit()
             .remove();
             bars.exit()
@@ -281,7 +331,31 @@ module powerbi.extensibility.visual {
                 header: language && language
             }];
 }
+        /**
+         * Enumerates through the objects defined in the capabilities and adds the properties to the format pane
+         *
+         * @function
+         * @param {EnumerateVisualObjectInstancesOptions} options - Map of defined objects
+         */
+        public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
+            let objectName = options.objectName;
+            let objectEnumeration: VisualObjectInstance[] = [];
+            debugger;
+            switch(objectName) {
+                case 'autoAdjustment':
+                    debugger;
+                    objectEnumeration.push({
+                        objectName: objectName,
+                        properties: {
+                            show: this.barChartSettings.autoAdjustment.show,
+                        },
+                        selector: null
+                    });
+                    break;
+            };
 
+            return objectEnumeration;
+        }
         /**
          * Destroy runs when the visual is removed. Any cleanup that the visual needs to
          * do should be done here.
@@ -290,9 +364,7 @@ module powerbi.extensibility.visual {
          */
         public destroy(): void {
             //Perform any cleanup tasks here
-        }
-        
-        
+        }       
         
     }
 }
