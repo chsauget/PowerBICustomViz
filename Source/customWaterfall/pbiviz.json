@@ -5,13 +5,13 @@
     "guid": "customWaterfall0FE9B59CDBF0499CA2C8F3E14B4FCA5E",
     "visualClassName": "BarChart",
     "version": "1.0.0",
-    "description": "",
-    "supportUrl": "",
-    "gitHubUrl": ""
+    "description": "Custom waterfall",
+    "supportUrl": "https://github.com/chsauget/PowerBICustomViz/issues",
+    "gitHubUrl": "https://github.com/chsauget/PowerBICustomViz/tree/master/Source/customWaterfall"
   },
   "apiVersion": "2.1.0",
   "author": {
-    "name": "",
+    "name": "Sauget Charles-Henri & Olivier Marguillard",
     "email": ""
   },
   "assets": {
