@@ -334,8 +334,8 @@ module powerbi.extensibility.visual {
             );
             
             //Clean bars and label
-            // lbl.exit()
-            // .remove();
+            lbl.exit()
+                .remove();
             bars.exit()
                 .remove();
 
