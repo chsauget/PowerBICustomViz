@@ -297,6 +297,7 @@ module powerbi.extensibility.visual {
                 class : d => 'bar ' + d.class,
                 fill: d => d.color
             });
+
             //Draw label
             let lbl = this.barContainer.selectAll('.lbl').data(viewModel.dataPoints);
             lbl.enter()
@@ -310,8 +311,10 @@ module powerbi.extensibility.visual {
                 'text-anchor':"middle"
             })
             .text(d => d.value);
+
             //Bind click event on bars to the selection manager
             let selectionManager = this.selectionManager;
+            
             bars.on('click', function(d) {
                 selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
                     bars.attr({
@@ -325,19 +328,24 @@ module powerbi.extensibility.visual {
             });
 
             //Bind tooltip to bars
-            this.tooltipServiceWrapper.addTooltip(this.barContainer.selectAll('.bar'),
+            this.tooltipServiceWrapper.addTooltip(this.barContainer.selectAll('.bar, .lbl'),
                 (tooltipEvent: tooltip.TooltipEventArgs<BarChartDataPoint>) => this.getTooltipData(tooltipEvent.data),
                 (tooltipEvent: tooltip.TooltipEventArgs<BarChartDataPoint>) => tooltipEvent.data.selectionId
             );
             
             //Clean bars and label
-            lbl.exit()
-            .remove();
+            // lbl.exit()
+            // .remove();
             bars.exit()
                 .remove();
 
         }
-
+        /**
+         * Methods to create tooltip informations
+         *
+         * @function
+         * @param {any} value - current selected datapoint
+         */
         private getTooltipData(value: any): VisualTooltipDataItem[] {
             return [{
                 displayName: value.columnLabel,
@@ -348,7 +356,7 @@ module powerbi.extensibility.visual {
                 value: value.value.toString(),
                 color: value.color
             }];
-}
+        }
         /**
          * Enumerates through the objects defined in the capabilities and adds the properties to the format pane
          *
