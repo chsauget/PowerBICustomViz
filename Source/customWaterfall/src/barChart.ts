@@ -30,6 +30,7 @@ module powerbi.extensibility.visual {
         autoAdjustment: {
             show: boolean;
         };
+        positiveColor: string;
     }
     
     /**
@@ -65,7 +66,8 @@ module powerbi.extensibility.visual {
         let defaultSettings: BarChartSettings = {
             autoAdjustment: {
                 show: true
-            }
+            },
+            positiveColor: host.colorPalette.getColor('Green').value
         };
         let viewModel: BarChartViewModel = {
             dataPoints: [],
@@ -83,10 +85,12 @@ module powerbi.extensibility.visual {
             return viewModel;
 
             let objects = dataViews[0].metadata.objects;
+            debugger;
             let barChartSettings: BarChartSettings = {
                 autoAdjustment: {
                     show: getValue<boolean>(objects, 'autoAdjustment', 'show', defaultSettings.autoAdjustment.show)
-                }
+                },
+                positiveColor: getValue<Fill>(objects, 'positiveColor', 'fill', defaultSettings.positiveColor).solid.color
             };
         let categorical = dataViews[0].categorical;
         let category = categorical.categories[0];
@@ -340,7 +344,7 @@ module powerbi.extensibility.visual {
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
             let objectName = options.objectName;
             let objectEnumeration: VisualObjectInstance[] = [];
-            debugger;
+
             switch(objectName) {
                 case 'autoAdjustment':
                     debugger;
@@ -348,6 +352,20 @@ module powerbi.extensibility.visual {
                         objectName: objectName,
                         properties: {
                             show: this.barChartSettings.autoAdjustment.show,
+                        },
+                        selector: null
+                    });
+                    break;
+                case 'positiveColor':
+                    debugger;
+                    objectEnumeration.push({
+                        objectName: objectName,
+                        properties: {
+                            fill :{
+                                solid: {
+                                    color: this.barChartSettings.positiveColor
+                                }
+                            }
                         },
                         selector: null
                     });
