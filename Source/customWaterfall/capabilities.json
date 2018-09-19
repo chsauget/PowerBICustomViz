@@ -9,11 +9,6 @@
             "displayName": "Measure Data",
             "name": "measure",
             "kind": "Measure"
-        },
-        {
-            "displayName": "Tooltips",
-            "name": "Tooltips",
-            "kind": "Measure"
         }
     ],
     "objects": {    
@@ -104,14 +99,5 @@
                 }
             ]
         }
-    },
-    "tooltips": {
-        "supportedTypes": {
-            "default": true,
-            "canvas": true
-        },
-        "roles": [
-            "Tooltips"
-        ]
-}
+    }
 }

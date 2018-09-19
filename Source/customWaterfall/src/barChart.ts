@@ -54,6 +54,7 @@ module powerbi.extensibility.visual {
         class: string;
         selectionId: ISelectionId;
         color: string;
+        columnLabel: string;
     };
      /**
      * Function that converts queried data into a view model that will be used by the visual
@@ -90,7 +91,6 @@ module powerbi.extensibility.visual {
             return viewModel;
 
             let objects = dataViews[0].metadata.objects;
-            debugger;
             let barChartSettings: BarChartSettings = {
                 autoAdjustment: {
                     show: getValue<boolean>(objects, 'autoAdjustment', 'show', defaultSettings.autoAdjustment.show)
@@ -121,8 +121,10 @@ module powerbi.extensibility.visual {
                     class:'total',
                     selectionId: host.createSelectionIdBuilder()
                         .withCategory(category, i)
+                        .withMeasure(dataValue.source.displayName)
                         .createSelectionId(),
-                    color: barChartSettings.totaleColor.solid.color
+                    color: barChartSettings.totaleColor.solid.color,
+                    columnLabel: category.source.displayName
                 });
             }
             else
@@ -135,18 +137,18 @@ module powerbi.extensibility.visual {
                     class:(<number>dataValue.values[i] >= 0 ) ? 'positive' : 'negative',
                     selectionId: host.createSelectionIdBuilder()
                         .withCategory(category, i)
+                        .withMeasure(dataValue.source.displayName)
                         .createSelectionId(),
-                    color: (<number>dataValue.values[i] >= 0) ? barChartSettings.positiveColor.solid.color : barChartSettings.negativeColor.solid.color
+                    color: (<number>dataValue.values[i] >= 0) ? barChartSettings.positiveColor.solid.color : barChartSettings.negativeColor.solid.color,
+                    columnLabel: category.source.displayName
                 });
             }
             dataMax = Math.max(dataMax,cumulative)
             cumulative += <number>dataValue.values[i];
         }
                     
-        //debugger;
-        //dataMax = <number>dataValue.maxLocal;
         dataAdjustment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
-        //Return viewModel 
+        
         return {
             dataPoints: barChartDataPoints,
             dataMax: dataMax,
@@ -337,12 +339,14 @@ module powerbi.extensibility.visual {
         }
 
         private getTooltipData(value: any): VisualTooltipDataItem[] {
-            let language = getLocalizedString(this.locale, "LanguageKey");
             return [{
-                displayName: value.category,
+                displayName: value.columnLabel,
+                value: value.category
+            },
+            {
+                displayName: value.selectionId.measures[0],
                 value: value.value.toString(),
-                color: value.color,
-                header: language && language
+                color: value.color
             }];
 }
         /**
@@ -365,7 +369,6 @@ module powerbi.extensibility.visual {
                     });
                     break;
                 case 'fillColors':
-                    debugger;
                     objectEnumeration.push({
                         objectName: objectName,
                         properties: {
