@@ -30,6 +30,9 @@ module powerbi.extensibility.visual {
         autoAdjustment: {
             show: boolean;
         };
+        positiveColor: Fill;
+        negativeColor: Fill;
+        totaleColor: Fill;
     }
     
     /**
@@ -50,6 +53,7 @@ module powerbi.extensibility.visual {
         end: number;
         class: string;
         selectionId: ISelectionId;
+        color: string;
     };
      /**
      * Function that converts queried data into a view model that will be used by the visual
@@ -65,7 +69,10 @@ module powerbi.extensibility.visual {
         let defaultSettings: BarChartSettings = {
             autoAdjustment: {
                 show: true
-            }
+            },
+            positiveColor:  { solid: { color: host.colorPalette.getColor('Red').value }},
+            negativeColor:  { solid: { color: host.colorPalette.getColor('Blue').value }},
+            totaleColor:  { solid: { color: host.colorPalette.getColor('Green').value }},
         };
         let viewModel: BarChartViewModel = {
             dataPoints: [],
@@ -83,10 +90,14 @@ module powerbi.extensibility.visual {
             return viewModel;
 
             let objects = dataViews[0].metadata.objects;
+            debugger;
             let barChartSettings: BarChartSettings = {
                 autoAdjustment: {
                     show: getValue<boolean>(objects, 'autoAdjustment', 'show', defaultSettings.autoAdjustment.show)
-                }
+                },
+                positiveColor: getValue<Fill>(objects, 'fillColors', 'positiveValue', defaultSettings.positiveColor),
+                negativeColor: getValue<Fill>(objects, 'fillColors', 'negativeValue', defaultSettings.negativeColor),
+                totaleColor: getValue<Fill>(objects, 'fillColors', 'totaleValue', defaultSettings.totaleColor)
             };
         let categorical = dataViews[0].categorical;
         let category = categorical.categories[0];
@@ -110,7 +121,8 @@ module powerbi.extensibility.visual {
                     class:'total',
                     selectionId: host.createSelectionIdBuilder()
                         .withCategory(category, i)
-                        .createSelectionId()
+                        .createSelectionId(),
+                    color: barChartSettings.totaleColor.solid.color
                 });
             }
             else
@@ -123,7 +135,8 @@ module powerbi.extensibility.visual {
                     class:(<number>dataValue.values[i] >= 0 ) ? 'positive' : 'negative',
                     selectionId: host.createSelectionIdBuilder()
                         .withCategory(category, i)
-                        .createSelectionId()
+                        .createSelectionId(),
+                    color: (<number>dataValue.values[i] >= 0) ? barChartSettings.positiveColor.solid.color : barChartSettings.negativeColor.solid.color
                 });
             }
             dataMax = Math.max(dataMax,cumulative)
@@ -279,7 +292,8 @@ module powerbi.extensibility.visual {
                 y: d => yScale(Math.max(d.start, d.end) ),
                 x: d => xScale(d.category),
                 transform: 'translate('+margins.left+', '+margins.top+')',
-                class : d => 'bar ' + d.class
+                class : d => 'bar ' + d.class,
+                fill: d => d.color
             });
             //Draw label
             let lbl = this.barContainer.selectAll('.lbl').data(viewModel.dataPoints);
@@ -340,10 +354,8 @@ module powerbi.extensibility.visual {
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
             let objectName = options.objectName;
             let objectEnumeration: VisualObjectInstance[] = [];
-            debugger;
             switch(objectName) {
                 case 'autoAdjustment':
-                    debugger;
                     objectEnumeration.push({
                         objectName: objectName,
                         properties: {
@@ -352,10 +364,23 @@ module powerbi.extensibility.visual {
                         selector: null
                     });
                     break;
+                case 'fillColors':
+                    debugger;
+                    objectEnumeration.push({
+                        objectName: objectName,
+                        properties: {
+                            positiveValue : this.barChartSettings.positiveColor,
+                            negativeValue : this.barChartSettings.negativeColor,
+                            totaleValue : this.barChartSettings.totaleColor
+                        },
+                        selector: null
+                    });
+                    break;
             };
 
             return objectEnumeration;
         }
+
         /**
          * Destroy runs when the visual is removed. Any cleanup that the visual needs to
          * do should be done here.

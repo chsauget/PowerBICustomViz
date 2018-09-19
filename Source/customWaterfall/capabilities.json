@@ -25,6 +25,41 @@
                     "type": { "bool": true }
                 }
             }
+        },
+        "fillColors": {
+            "displayName": "Data Colors",
+            "properties": {
+                "positiveValue": {
+                    "displayName": "Positive Value",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "negativeValue": {
+                    "displayName": "Negative Value",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "totaleValue": {
+                    "displayName": "Totale Value",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "dataViewMappings": [
