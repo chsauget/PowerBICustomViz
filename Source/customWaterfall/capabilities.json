@@ -12,19 +12,14 @@
         }
     ],
     "objects": {    
-        "autoAdjustment": {
-            "displayName": "Auto adjustment",
+        "barCharSettings": {
+            "displayName": "Data representation",
             "properties": {
-                "show": {
+                "autoAdjustment": {
                     "displayName": "Auto adjust Y axis",
                     "type": { "bool": true }
-                }
-            }
-        },
-        "fillColors": {
-            "displayName": "Data Colors",
-            "properties": {
-                "positiveValue": {
+                },
+                "positiveColor": {
                     "displayName": "Positive Value",
                     "type": {
                         "fill": {
@@ -34,7 +29,7 @@
                         }
                     }
                 },
-                "negativeValue": {
+                "negativeColor": {
                     "displayName": "Negative Value",
                     "type": {
                         "fill": {
@@ -44,8 +39,8 @@
                         }
                     }
                 },
-                "totaleValue": {
-                    "displayName": "Totale Value",
+                "totalColor": {
+                    "displayName": "Total Value",
                     "type": {
                         "fill": {
                             "solid": {

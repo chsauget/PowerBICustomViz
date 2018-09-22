@@ -1,6 +1,7 @@
 module powerbi.extensibility.visual {
 
     import tooltip = powerbi.extensibility.utils.tooltip;
+    import DataViewObjectsParser = powerbi.extensibility.utils.dataview.DataViewObjectsParser;
 
     /**
      * Interface for BarCharts viewmodel.
@@ -26,13 +27,15 @@ module powerbi.extensibility.visual {
      * @interface
      * @property {{show:boolean}} autoAdjustment - Object property that allows auto Y axis.
      */
-    interface BarChartSettings {
-        autoAdjustment: {
-            show: boolean;
-        };
-        positiveColor: Fill;
-        negativeColor: Fill;
-        totaleColor: Fill;
+    export class BarChartSettings {
+        public autoAdjustment: boolean = true;
+        public positiveColor: string = "red";
+        public negativeColor: string = "blue";
+        public totalColor: string = "green";
+    }
+
+    export class VisualSettings extends DataViewObjectsParser {
+        public barCharSettings: BarChartSettings = new BarChartSettings();
     }
     
     /**
@@ -56,107 +59,7 @@ module powerbi.extensibility.visual {
         color: string;
         columnLabel: string;
     };
-     /**
-     * Function that converts queried data into a view model that will be used by the visual
-     *
-     * @function
-     * @param {VisualUpdateOptions} options - Contains references to the size of the container
-     *                                        and the dataView which contains all the data
-     *                                        the visual had queried.
-     * @param {IVisualHost} host            - Contains references to the host which contains services
-     */
-    function visualTransform(options: VisualUpdateOptions, host: IVisualHost): BarChartViewModel {
-        let dataViews = options.dataViews;
-        let defaultSettings: BarChartSettings = {
-            autoAdjustment: {
-                show: true
-            },
-            positiveColor:  { solid: { color: host.colorPalette.getColor('Red').value }},
-            negativeColor:  { solid: { color: host.colorPalette.getColor('Blue').value }},
-            totaleColor:  { solid: { color: host.colorPalette.getColor('Green').value }},
-        };
-        let viewModel: BarChartViewModel = {
-            dataPoints: [],
-            dataMax: 0,
-            dataMin: 0,
-            dataAdjustment: 0,
-            settings: defaultSettings
-        };
-         if (!dataViews
-            || !dataViews[0]
-            || !dataViews[0].categorical
-            || !dataViews[0].categorical.categories
-            || !dataViews[0].categorical.categories[0].source
-            || !dataViews[0].categorical.values)
-            return viewModel;
 
-            let objects = dataViews[0].metadata.objects;
-            let barChartSettings: BarChartSettings = {
-                autoAdjustment: {
-                    show: getValue<boolean>(objects, 'autoAdjustment', 'show', defaultSettings.autoAdjustment.show)
-                },
-                positiveColor: getValue<Fill>(objects, 'fillColors', 'positiveValue', defaultSettings.positiveColor),
-                negativeColor: getValue<Fill>(objects, 'fillColors', 'negativeValue', defaultSettings.negativeColor),
-                totaleColor: getValue<Fill>(objects, 'fillColors', 'totaleValue', defaultSettings.totaleColor)
-            };
-        let categorical = dataViews[0].categorical;
-        let category = categorical.categories[0];
-        let dataValue = categorical.values[0];
-        let barChartDataPoints: BarChartDataPoint[] = [];
-        let dataAdjustment: number;
-        /*****************************************************************************/
-        /* Populate barChartDataPoints from dataset                                  */
-        /*****************************************************************************/
-        let cumulative = 0;
-        let dataMax = 0;
-        for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
-            
-            if(i==len - 1)
-            {
-                barChartDataPoints.push({
-                    category: <string>category.values[i],
-                    value: <number>dataValue.values[i],
-                    start: 0,
-                    end :(<number>dataValue.values[i]),
-                    class:'total',
-                    selectionId: host.createSelectionIdBuilder()
-                        .withCategory(category, i)
-                        .withMeasure(dataValue.source.displayName)
-                        .createSelectionId(),
-                    color: barChartSettings.totaleColor.solid.color,
-                    columnLabel: category.source.displayName
-                });
-            }
-            else
-            {
-                barChartDataPoints.push({
-                    category: <string>category.values[i],
-                    value: <number>dataValue.values[i],
-                    start: cumulative,
-                    end :(<number>dataValue.values[i] + cumulative),
-                    class:(<number>dataValue.values[i] >= 0 ) ? 'positive' : 'negative',
-                    selectionId: host.createSelectionIdBuilder()
-                        .withCategory(category, i)
-                        .withMeasure(dataValue.source.displayName)
-                        .createSelectionId(),
-                    color: (<number>dataValue.values[i] >= 0) ? barChartSettings.positiveColor.solid.color : barChartSettings.negativeColor.solid.color,
-                    columnLabel: category.source.displayName
-                });
-            }
-            dataMax = Math.max(dataMax,cumulative)
-            cumulative += <number>dataValue.values[i];
-        }
-                    
-        dataAdjustment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
-        
-        return {
-            dataPoints: barChartDataPoints,
-            dataMax: dataMax,
-            dataMin: 0,
-            dataAdjustment: dataAdjustment,
-            settings: barChartSettings
-        };
-    }
 
 
     export class BarChart implements IVisual {
@@ -171,6 +74,7 @@ module powerbi.extensibility.visual {
         private tooltipServiceWrapper: tooltip.ITooltipServiceWrapper;
         private barChartSettings: BarChartSettings;
         private locale: string;
+        private visualSettings: VisualSettings;
 
         static Config = {
             xScalePadding: 0.1,
@@ -213,6 +117,95 @@ module powerbi.extensibility.visual {
         }
 
         /**
+         * Function that converts queried data into a view model that will be used by the visual
+         *
+         * @function
+         * @param {VisualUpdateOptions} options - Contains references to the size of the container
+         *                                        and the dataView which contains all the data
+         *                                        the visual had queried.
+         * @param {IVisualHost} host            - Contains references to the host which contains services
+         */
+        public visualTransform(options: VisualUpdateOptions, host: IVisualHost): BarChartViewModel {
+            debugger;
+            let dataViews = options.dataViews;
+            let defaultSettings: BarChartSettings = new BarChartSettings();
+            let viewModel: BarChartViewModel = {
+                dataPoints: [],
+                dataMax: 0,
+                dataMin: 0,
+                dataAdjustment: 0,
+                settings: defaultSettings
+            };
+            if (!dataViews
+                || !dataViews[0]
+                || !dataViews[0].categorical
+                || !dataViews[0].categorical.categories
+                || !dataViews[0].categorical.categories[0].source
+                || !dataViews[0].categorical.values)
+                return viewModel;
+
+                let objects = dataViews[0].metadata.objects;
+
+            let categorical = dataViews[0].categorical;
+            let category = categorical.categories[0];
+            let dataValue = categorical.values[0];
+            let barChartDataPoints: BarChartDataPoint[] = [];
+            let dataAdjustment: number;
+            /*****************************************************************************/
+            /* Populate barChartDataPoints from dataset                                  */
+            /*****************************************************************************/
+            let cumulative = 0;
+            let dataMax = 0;
+            for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
+                
+                if(i==len - 1)
+                {
+                    barChartDataPoints.push({
+                        category: <string>category.values[i],
+                        value: <number>dataValue.values[i],
+                        start: 0,
+                        end :(<number>dataValue.values[i]),
+                        class:'total',
+                        selectionId: host.createSelectionIdBuilder()
+                            .withCategory(category, i)
+                            .withMeasure(dataValue.source.displayName)
+                            .createSelectionId(),
+                        color:this.visualSettings.barCharSettings.totalColor,
+                        columnLabel: category.source.displayName
+                    });
+                }
+                else
+                {
+                    barChartDataPoints.push({
+                        category: <string>category.values[i],
+                        value: <number>dataValue.values[i],
+                        start: cumulative,
+                        end :(<number>dataValue.values[i] + cumulative),
+                        class:(<number>dataValue.values[i] >= 0 ) ? 'positive' : 'negative',
+                        selectionId: host.createSelectionIdBuilder()
+                            .withCategory(category, i)
+                            .withMeasure(dataValue.source.displayName)
+                            .createSelectionId(),
+                        color: (<number>dataValue.values[i] >= 0) ? this.visualSettings.barCharSettings.positiveColor : this.visualSettings.barCharSettings.negativeColor,
+                        columnLabel: category.source.displayName
+                    });
+                }
+                dataMax = Math.max(dataMax,cumulative)
+                cumulative += <number>dataValue.values[i];
+            }
+                        
+            dataAdjustment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
+            
+            return {
+                dataPoints: barChartDataPoints,
+                dataMax: dataMax,
+                dataMin: 0,
+                dataAdjustment: dataAdjustment,
+                settings: this.visualSettings.barCharSettings
+            };
+        }
+
+        /**
          * Updates the state of the visual. Every sequential databinding and resize will call update.
          *
          * @function
@@ -222,8 +215,8 @@ module powerbi.extensibility.visual {
          */
         public update(options: VisualUpdateOptions) {
 
-            let viewModel: BarChartViewModel = visualTransform(options, this.host);
-            let settings = this.barChartSettings = viewModel.settings;
+            this.visualSettings = VisualSettings.parse<VisualSettings>(options.dataViews[0]);
+            let viewModel: BarChartViewModel = this.visualTransform(options, this.host);
             let adjustment = viewModel.dataAdjustment;
             //Retrieve the visualisation size from PowerBI
             let width = options.viewport.width;
@@ -238,8 +231,9 @@ module powerbi.extensibility.visual {
             /* Configuration management                                                  */
             /*****************************************************************************/  
 
-            if (!settings.autoAdjustment.show) {
-                adjustment = 0;
+            if (!this.visualSettings.barCharSettings.autoAdjustment) {
+                adjustment = 0; 
+
             }
             
             let margins = BarChart.Config.margins;
@@ -364,32 +358,9 @@ module powerbi.extensibility.visual {
          * @param {EnumerateVisualObjectInstancesOptions} options - Map of defined objects
          */
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
-            let objectName = options.objectName;
-            let objectEnumeration: VisualObjectInstance[] = [];
-            switch(objectName) {
-                case 'autoAdjustment':
-                    objectEnumeration.push({
-                        objectName: objectName,
-                        properties: {
-                            show: this.barChartSettings.autoAdjustment.show,
-                        },
-                        selector: null
-                    });
-                    break;
-                case 'fillColors':
-                    objectEnumeration.push({
-                        objectName: objectName,
-                        properties: {
-                            positiveValue : this.barChartSettings.positiveColor,
-                            negativeValue : this.barChartSettings.negativeColor,
-                            totaleValue : this.barChartSettings.totaleColor
-                        },
-                        selector: null
-                    });
-                    break;
-            };
+            const settings: VisualSettings = this.visualSettings || VisualSettings.getDefault() as VisualSettings;
 
-            return objectEnumeration;
+             return VisualSettings.enumerateObjectInstances(settings, options);
         }
 
         /**
