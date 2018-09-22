@@ -59,93 +59,7 @@ module powerbi.extensibility.visual {
         color: string;
         columnLabel: string;
     };
-     /**
-     * Function that converts queried data into a view model that will be used by the visual
-     *
-     * @function
-     * @param {VisualUpdateOptions} options - Contains references to the size of the container
-     *                                        and the dataView which contains all the data
-     *                                        the visual had queried.
-     * @param {IVisualHost} host            - Contains references to the host which contains services
-     */
-    function visualTransform(options: VisualUpdateOptions, host: IVisualHost): BarChartViewModel {
-        let dataViews = options.dataViews;
-        let defaultSettings: BarChartSettings = new BarChartSettings();
-        let viewModel: BarChartViewModel = {
-            dataPoints: [],
-            dataMax: 0,
-            dataMin: 0,
-            dataAdjustment: 0,
-            settings: defaultSettings
-        };
-         if (!dataViews
-            || !dataViews[0]
-            || !dataViews[0].categorical
-            || !dataViews[0].categorical.categories
-            || !dataViews[0].categorical.categories[0].source
-            || !dataViews[0].categorical.values)
-            return viewModel;
 
-            let objects = dataViews[0].metadata.objects;
-
-        let categorical = dataViews[0].categorical;
-        let category = categorical.categories[0];
-        let dataValue = categorical.values[0];
-        let barChartDataPoints: BarChartDataPoint[] = [];
-        let dataAdjustment: number;
-        /*****************************************************************************/
-        /* Populate barChartDataPoints from dataset                                  */
-        /*****************************************************************************/
-        let cumulative = 0;
-        let dataMax = 0;
-        for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
-            
-            if(i==len - 1)
-            {
-                barChartDataPoints.push({
-                    category: <string>category.values[i],
-                    value: <number>dataValue.values[i],
-                    start: 0,
-                    end :(<number>dataValue.values[i]),
-                    class:'total',
-                    selectionId: host.createSelectionIdBuilder()
-                        .withCategory(category, i)
-                        .withMeasure(dataValue.source.displayName)
-                        .createSelectionId(),
-                    color: this.visualSettings.barCharSettings.totalColor,
-                    columnLabel: category.source.displayName
-                });
-            }
-            else
-            {
-                barChartDataPoints.push({
-                    category: <string>category.values[i],
-                    value: <number>dataValue.values[i],
-                    start: cumulative,
-                    end :(<number>dataValue.values[i] + cumulative),
-                    class:(<number>dataValue.values[i] >= 0 ) ? 'positive' : 'negative',
-                    selectionId: host.createSelectionIdBuilder()
-                        .withCategory(category, i)
-                        .withMeasure(dataValue.source.displayName)
-                        .createSelectionId(),
-                    color: (<number>dataValue.values[i] >= 0) ? this.visualSettings.barCharSettings.positiveColor : this.visualSettings.barCharSettings.negativeColor,
-                    columnLabel: category.source.displayName
-                });
-            }
-            dataMax = Math.max(dataMax,cumulative)
-            cumulative += <number>dataValue.values[i];
-        }
-                    
-        dataAdjustment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
-        
-        return {
-            dataPoints: barChartDataPoints,
-            dataMax: dataMax,
-            dataMin: 0,
-            dataAdjustment: dataAdjustment,
-            settings: this.visualSettings.barCharSettings
-        };
-    }
 
 
     export class BarChart implements IVisual {
@@ -203,6 +117,95 @@ module powerbi.extensibility.visual {
         }
 
         /**
+         * Function that converts queried data into a view model that will be used by the visual
+         *
+         * @function
+         * @param {VisualUpdateOptions} options - Contains references to the size of the container
+         *                                        and the dataView which contains all the data
+         *                                        the visual had queried.
+         * @param {IVisualHost} host            - Contains references to the host which contains services
+         */
+        public visualTransform(options: VisualUpdateOptions, host: IVisualHost): BarChartViewModel {
+            debugger;
+            let dataViews = options.dataViews;
+            let defaultSettings: BarChartSettings = new BarChartSettings();
+            let viewModel: BarChartViewModel = {
+                dataPoints: [],
+                dataMax: 0,
+                dataMin: 0,
+                dataAdjustment: 0,
+                settings: defaultSettings
+            };
+            if (!dataViews
+                || !dataViews[0]
+                || !dataViews[0].categorical
+                || !dataViews[0].categorical.categories
+                || !dataViews[0].categorical.categories[0].source
+                || !dataViews[0].categorical.values)
+                return viewModel;
+
+                let objects = dataViews[0].metadata.objects;
+
+            let categorical = dataViews[0].categorical;
+            let category = categorical.categories[0];
+            let dataValue = categorical.values[0];
+            let barChartDataPoints: BarChartDataPoint[] = [];
+            let dataAdjustment: number;
+            /*****************************************************************************/
+            /* Populate barChartDataPoints from dataset                                  */
+            /*****************************************************************************/
+            let cumulative = 0;
+            let dataMax = 0;
+            for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
+                
+                if(i==len - 1)
+                {
+                    barChartDataPoints.push({
+                        category: <string>category.values[i],
+                        value: <number>dataValue.values[i],
+                        start: 0,
+                        end :(<number>dataValue.values[i]),
+                        class:'total',
+                        selectionId: host.createSelectionIdBuilder()
+                            .withCategory(category, i)
+                            .withMeasure(dataValue.source.displayName)
+                            .createSelectionId(),
+                        color:this.visualSettings.barCharSettings.totalColor,
+                        columnLabel: category.source.displayName
+                    });
+                }
+                else
+                {
+                    barChartDataPoints.push({
+                        category: <string>category.values[i],
+                        value: <number>dataValue.values[i],
+                        start: cumulative,
+                        end :(<number>dataValue.values[i] + cumulative),
+                        class:(<number>dataValue.values[i] >= 0 ) ? 'positive' : 'negative',
+                        selectionId: host.createSelectionIdBuilder()
+                            .withCategory(category, i)
+                            .withMeasure(dataValue.source.displayName)
+                            .createSelectionId(),
+                        color: (<number>dataValue.values[i] >= 0) ? this.visualSettings.barCharSettings.positiveColor : this.visualSettings.barCharSettings.negativeColor,
+                        columnLabel: category.source.displayName
+                    });
+                }
+                dataMax = Math.max(dataMax,cumulative)
+                cumulative += <number>dataValue.values[i];
+            }
+                        
+            dataAdjustment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
+            
+            return {
+                dataPoints: barChartDataPoints,
+                dataMax: dataMax,
+                dataMin: 0,
+                dataAdjustment: dataAdjustment,
+                settings: this.visualSettings.barCharSettings
+            };
+        }
+
+        /**
          * Updates the state of the visual. Every sequential databinding and resize will call update.
          *
          * @function
@@ -212,10 +215,9 @@ module powerbi.extensibility.visual {
          */
         public update(options: VisualUpdateOptions) {
 
-            let viewModel: BarChartViewModel = visualTransform(options, this.host);
             this.visualSettings = VisualSettings.parse<VisualSettings>(options.dataViews[0]);
+            let viewModel: BarChartViewModel = this.visualTransform(options, this.host);
             let adjustment = viewModel.dataAdjustment;
-            debugger;
             //Retrieve the visualisation size from PowerBI
             let width = options.viewport.width;
             let height = options.viewport.height;
