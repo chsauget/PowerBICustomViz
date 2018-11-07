@@ -20,7 +20,7 @@
                     "type": { "bool": true }
                 },
                 "positiveColor": {
-                    "displayName": "Positive Value",
+                    "displayName": "Positive Variance",
                     "type": {
                         "fill": {
                             "solid": {
@@ -30,7 +30,27 @@
                     }
                 },
                 "negativeColor": {
-                    "displayName": "Negative Value",
+                    "displayName": "Negative Variance",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "unexplainedColor": {
+                    "displayName": "Unexplained Remaining Total",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "compositionColor": {
+                    "displayName": "Composition Variance",
                     "type": {
                         "fill": {
                             "solid": {
@@ -40,7 +60,7 @@
                     }
                 },
                 "totalColor": {
-                    "displayName": "Total Value",
+                    "displayName": "Cumulative Total",
                     "type": {
                         "fill": {
                             "solid": {
@@ -57,7 +77,7 @@
             "conditions": [
                 {
                     "category": {
-                        "max": 1
+                        "max": 3
                     },
                     "measure": {
                         "max": 1

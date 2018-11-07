@@ -2,6 +2,7 @@ module powerbi.extensibility.visual {
 
     import tooltip = powerbi.extensibility.utils.tooltip;
     import DataViewObjectsParser = powerbi.extensibility.utils.dataview.DataViewObjectsParser;
+    //import d3plus = powerbi.extensibility.
 
     /**
      * Interface for BarCharts viewmodel.
@@ -29,9 +30,11 @@ module powerbi.extensibility.visual {
      */
     export class BarChartSettings {
         public autoAdjustment: boolean = true;
-        public positiveColor: string = "red";
-        public negativeColor: string = "blue";
-        public totalColor: string = "green";
+        public positiveColor: string = "green";
+        public negativeColor: string = "red";
+        public unexplainedColor: string = "yellow";
+        public compositionColor: string = "purple";
+        public totalColor: string = "blue";
     }
 
     export class VisualSettings extends DataViewObjectsParser {
@@ -52,6 +55,8 @@ module powerbi.extensibility.visual {
     interface BarChartDataPoint {
         value: number;
         category: string;
+        order: number;
+        type: string;
         start: number;
         end: number;
         class: string;
@@ -147,21 +152,27 @@ module powerbi.extensibility.visual {
                 let objects = dataViews[0].metadata.objects;
 
             let categorical = dataViews[0].categorical;
-            let category = categorical.categories[0];
+            let category = categorical.categories[2];
+            let order = categorical.categories[0];
+            let type = categorical.categories[1];
             let dataValue = categorical.values[0];
             let barChartDataPoints: BarChartDataPoint[] = [];
             let dataAdjustment: number;
             /*****************************************************************************/
             /* Populate barChartDataPoints from dataset                                  */
             /*****************************************************************************/
-            let cumulative = 0;
-            let dataMax = 0;
+            let cumulative = <number>dataValue.values[0];
+            let dataMax = <number>dataValue.values[0];
+            let dataMin = <number>dataValue.values[0];
             for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
                 
-                if(i==len - 1)
+                //if(i==len - 1 || i==0)
+                if(type.values[i] == "Total")
                 {
                     barChartDataPoints.push({
                         category: <string>category.values[i],
+                        order: <number>order.values[i],
+                        type: <string>type.values[i],
                         value: <number>dataValue.values[i],
                         start: 0,
                         end :(<number>dataValue.values[i]),
@@ -174,10 +185,53 @@ module powerbi.extensibility.visual {
                         columnLabel: category.source.displayName
                     });
                 }
+                else if(type.values[i] == "Unexplained")
+                {
+                    barChartDataPoints.push({
+                        category: <string>category.values[i],
+                        order: <number>order.values[i],
+                        type: <string>type.values[i],
+                        value: <number>dataValue.values[i],
+                        start: cumulative,
+                        end :(<number>dataValue.values[i] + cumulative),
+                        class:'unexplained',
+                        selectionId: host.createSelectionIdBuilder()
+                            .withCategory(category, i)
+                            .withMeasure(dataValue.source.displayName)
+                            .createSelectionId(),
+                        color: this.visualSettings.barCharSettings.unexplainedColor,
+                        columnLabel: category.source.displayName
+                    });
+                }
+                else if(type.values[i] == "Composition")
+                {
+                    barChartDataPoints.push({
+                        category: <string>category.values[i],
+                        order: <number>order.values[i],
+                        type: <string>type.values[i],
+                        value: <number>dataValue.values[i],
+                        start: (cumulative - <number>dataValue.values[i]),
+                        end : cumulative,
+                        class:'composition',
+                        selectionId: host.createSelectionIdBuilder()
+                            .withCategory(category, i)
+                            .withMeasure(dataValue.source.displayName)
+                            .createSelectionId(),
+                        color: this.visualSettings.barCharSettings.compositionColor,
+                        columnLabel: category.source.displayName
+                    });
+                }
+
+
+
+
+
                 else
                 {
                     barChartDataPoints.push({
                         category: <string>category.values[i],
+                        order: <number>order.values[i],
+                        type: <string>type.values[i],
                         value: <number>dataValue.values[i],
                         start: cumulative,
                         end :(<number>dataValue.values[i] + cumulative),
@@ -189,12 +243,15 @@ module powerbi.extensibility.visual {
                         color: (<number>dataValue.values[i] >= 0) ? this.visualSettings.barCharSettings.positiveColor : this.visualSettings.barCharSettings.negativeColor,
                         columnLabel: category.source.displayName
                     });
+                    dataMin = Math.min(dataMin,cumulative);
+                    dataMax = Math.max(dataMax,cumulative);
+                    cumulative += <number>dataValue.values[i];
                 }
-                dataMax = Math.max(dataMax,cumulative)
-                cumulative += <number>dataValue.values[i];
+                
             }
                         
-            dataAdjustment = dataMax - (2*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
+            dataAdjustment = 0.90 * dataMin;
+            //dataMax - (0.66*Math.abs(dataMax - Math.min(<number>dataValue.values[dataValue.values.length-1],<number>dataValue.values[0])));
             
             return {
                 dataPoints: barChartDataPoints,
@@ -245,10 +302,10 @@ module powerbi.extensibility.visual {
             /* Start drawing with D3.js                                                  */
             /*****************************************************************************/
             this.xAxis.style({
-                "font-size": d3.min([height, width]) * BarChart.Config.xAxisFontMultiplier
+                "font-size": d3.min([height, width]) * BarChart.Config.xAxisFontMultiplier * 0.66
             });
             this.yAxis.style({
-                "font-size": d3.min([height, width]) * BarChart.Config.xAxisFontMultiplier
+                "font-size": d3.min([height, width]) * BarChart.Config.xAxisFontMultiplier * 0.66
             });
 
             let yScale = d3.scale.linear()
